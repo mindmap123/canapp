@@ -43,7 +43,13 @@
   --chart-3: 45 93% 47%;
   --chart-4: 280 65% 45%;
   --chart-5: 15 85% 50%;
-  --font-sans: Open Sans, sans-serif;
+  --availability-store: 142 71% 45%;
+  --availability-store-foreground: 142 71% 98%;
+  --availability-stock: 217 91% 60%;
+  --availability-stock-foreground: 217 91% 98%;
+  --availability-order: 45 93% 47%;
+  --availability-order-foreground: 45 15% 15%;
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: .5rem;
@@ -127,6 +133,12 @@
   --chart-3: 45 93% 72%;
   --chart-4: 280 65% 70%;
   --chart-5: 15 85% 68%;
+  --availability-store: 142 71% 55%;
+  --availability-store-foreground: 142 71% 98%;
+  --availability-stock: 217 91% 65%;
+  --availability-stock-foreground: 217 91% 98%;
+  --availability-order: 45 93% 60%;
+  --availability-order-foreground: 45 15% 15%;
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.15);

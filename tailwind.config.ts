@@ -81,6 +81,20 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        availability: {
+          store: {
+            DEFAULT: "hsl(var(--availability-store) / <alpha-value>)",
+            foreground: "hsl(var(--availability-store-foreground) / <alpha-value>)",
+          },
+          stock: {
+            DEFAULT: "hsl(var(--availability-stock) / <alpha-value>)",
+            foreground: "hsl(var(--availability-stock-foreground) / <alpha-value>)",
+          },
+          order: {
+            DEFAULT: "hsl(var(--availability-order) / <alpha-value>)",
+            foreground: "hsl(var(--availability-order-foreground) / <alpha-value>)",
+          },
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
