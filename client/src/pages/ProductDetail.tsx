@@ -1,20 +1,87 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 import AvailabilityBadge from "@/components/AvailabilityBadge";
 import ProductCard from "@/components/ProductCard";
-import { mockSofas } from "@/lib/mockData";
-import { ArrowLeft, Plus, Ruler, Sofa as SofaIcon, Check } from "lucide-react";
+import { useSelection } from "@/lib/selectionContext";
+import { queryClient } from "@/lib/queryClient";
+import { fetchSofaById, fetchSofas, uploadPhotoToSofa } from "@/lib/api";
+import { ArrowLeft, Plus, Ruler, Sofa as SofaIcon, Check, Upload } from "lucide-react";
 import { AvailabilityType } from "@/components/AvailabilityBadge";
+import { Sofa } from "@shared/schema";
 
 export default function ProductDetail() {
   const [, params] = useRoute("/product/:id");
   const [, setLocation] = useLocation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { toggleSelection } = useSelection();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const sofa = mockSofas.find((s) => s.id === params?.id);
+  const { data: sofa, isLoading } = useQuery({
+    queryKey: ["/api/sofas", params?.id],
+    queryFn: () => fetchSofaById(params!.id),
+    enabled: !!params?.id,
+  });
+
+  const { data: allSofas } = useQuery({
+    queryKey: ["/api/sofas"],
+    queryFn: fetchSofas,
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadPhotoToSofa(params!.id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sofas", params?.id] });
+      toast({
+        title: "Photo ajoutée",
+        description: "La photo a été ajoutée à la galerie avec succès",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter la photo",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadMutation.mutate(file);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/catalog")}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="grid md:grid-cols-2 gap-8">
+            <Skeleton className="aspect-video rounded-2xl" />
+            <div className="space-y-6">
+              <Skeleton className="h-12 w-3/4" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-16 w-1/2" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!sofa) {
     return (
@@ -37,9 +104,17 @@ export default function ProductDetail() {
     return availability;
   };
 
-  const variants = mockSofas.filter(
+  const variants = allSofas?.filter(
     (s) => s.type === sofa.type && s.id !== sofa.id
-  );
+  ) || [];
+
+  const getVariantAvailability = (variant: Sofa): AvailabilityType[] => {
+    const av: AvailabilityType[] = [];
+    if (variant.inStore) av.push("store");
+    if (variant.inStock) av.push("stock");
+    if (variant.onOrder) av.push("order");
+    return av;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,9 +166,22 @@ export default function ProductDetail() {
                 variant="outline"
                 className="flex-shrink-0 w-20 h-20"
                 data-testid="button-add-photo"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadMutation.isPending}
               >
-                <Plus className="w-5 h-5" />
+                {uploadMutation.isPending ? (
+                  <Upload className="w-5 h-5 animate-pulse" />
+                ) : (
+                  <Plus className="w-5 h-5" />
+                )}
               </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
             </div>
           </div>
 
@@ -122,7 +210,12 @@ export default function ProductDetail() {
               <span className="text-lg text-muted-foreground">TTC</span>
             </div>
 
-            <Button size="lg" className="w-full h-14" data-testid="button-add-to-selection">
+            <Button 
+              size="lg" 
+              className="w-full h-14" 
+              data-testid="button-add-to-selection"
+              onClick={() => toggleSelection(sofa.id)}
+            >
               <Plus className="w-5 h-5 mr-2" />
               Ajouter à ma sélection
             </Button>
@@ -195,15 +288,9 @@ export default function ProductDetail() {
                   price={parseFloat(variant.price)}
                   mainImage={variant.mainImage}
                   type={variant.type as any}
-                  availability={(() => {
-                    const av: AvailabilityType[] = [];
-                    if (variant.inStore) av.push("store");
-                    if (variant.inStock) av.push("stock");
-                    if (variant.onOrder) av.push("order");
-                    return av;
-                  })()}
+                  availability={getVariantAvailability(variant)}
                   onViewDetails={() => setLocation(`/product/${variant.id}`)}
-                  onAddToSelection={() => console.log("Add variant", variant.id)}
+                  onAddToSelection={() => toggleSelection(variant.id)}
                 />
               ))}
             </div>

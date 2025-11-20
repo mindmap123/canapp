@@ -1,21 +1,28 @@
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import AvailabilityBadge from "@/components/AvailabilityBadge";
-import { mockSofas } from "@/lib/mockData";
+import { useSelection } from "@/lib/selectionContext";
+import { fetchSofas } from "@/lib/api";
 import { ArrowLeft, X } from "lucide-react";
 import { AvailabilityType } from "@/components/AvailabilityBadge";
-import { useState } from "react";
+import { Sofa } from "@shared/schema";
 
 export default function Comparison() {
   const [, setLocation] = useLocation();
-  //todo: remove mock functionality - in real app, get selected products from state/context
-  const [selectedIds, setSelectedIds] = useState(mockSofas.slice(0, 3).map((s) => s.id));
+  const { selectedIds, removeFromSelection } = useSelection();
 
-  const selectedSofas = mockSofas.filter((s) => selectedIds.includes(s.id));
+  const { data: allSofas, isLoading } = useQuery({
+    queryKey: ["/api/sofas"],
+    queryFn: fetchSofas,
+  });
 
-  const getAvailability = (sofa: typeof mockSofas[0]): AvailabilityType[] => {
+  const selectedSofas = allSofas?.filter((s) => selectedIds.includes(s.id)) || [];
+
+  const getAvailability = (sofa: Sofa): AvailabilityType[] => {
     const availability: AvailabilityType[] = [];
     if (sofa.inStore) availability.push("store");
     if (sofa.inStock) availability.push("stock");
@@ -23,9 +30,26 @@ export default function Comparison() {
     return availability;
   };
 
-  const removeProduct = (id: string) => {
-    setSelectedIds(selectedIds.filter((i) => i !== id));
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/catalog")}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-[600px] rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (selectedSofas.length === 0) {
     return (
@@ -81,7 +105,7 @@ export default function Comparison() {
                   variant="destructive"
                   size="icon"
                   className="absolute top-3 right-3 rounded-full"
-                  onClick={() => removeProduct(sofa.id)}
+                  onClick={() => removeFromSelection(sofa.id)}
                   data-testid={`button-remove-${sofa.id}`}
                 >
                   <X className="w-4 h-4" />

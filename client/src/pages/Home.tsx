@@ -9,6 +9,12 @@ import AvailabilityFilter from "@/components/AvailabilityFilter";
 import { SofaType, DepthType } from "@shared/schema";
 import { Sparkles } from "lucide-react";
 
+const depthRanges = {
+  shallow: { min: 0, max: 85 },
+  standard: { min: 85, max: 95 },
+  lounge: { min: 95, max: 999 },
+};
+
 export default function Home() {
   const [, setLocation] = useLocation();
   const [selectedType, setSelectedType] = useState<SofaType | null>(null);
@@ -22,14 +28,21 @@ export default function Home() {
   });
 
   const handleSearch = () => {
-    console.log("Searching with filters:", {
-      selectedType,
-      maxWidth,
-      depth,
-      budget,
-      availability,
-    });
-    setLocation("/catalog");
+    const params = new URLSearchParams();
+    
+    if (selectedType) params.append("type", selectedType);
+    if (maxWidth[0]) params.append("maxWidth", maxWidth[0].toString());
+    if (depth) {
+      const range = depthRanges[depth];
+      params.append("minDepth", range.min.toString());
+      params.append("maxDepth", range.max.toString());
+    }
+    if (budget[0]) params.append("maxPrice", budget[0].toString());
+    if (availability.store) params.append("inStore", "true");
+    if (availability.stock) params.append("inStock", "true");
+    if (availability.order) params.append("onOrder", "true");
+
+    setLocation(`/catalog?${params.toString()}`);
   };
 
   return (
