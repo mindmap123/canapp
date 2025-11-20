@@ -1,0 +1,197 @@
+DESIGN APP CANAPÉS (VERSION 2025 PREMIUM)
+
+Objectif :
+Créer une interface tablette/web premium permettant de filtrer, visualiser et sélectionner des modèles de canapés à partir d’une API interne.
+L’interface doit être moderne, ultra intuitive, 2025-ready, avec la possibilité d’ajouter des photos supplémentaires venant d’une galerie manuelle (en plus des photos fournies par l’API).
+
+🧭 STYLE GLOBAL
+
+Design 2025, premium, inspiré Apple / Tesla / Dyson.
+
+Interface minimaliste, élégante, très lisible.
+
+Formes arrondies, ombres douces, micro-animations fluides.
+
+Grand usage d’espace négatif pour respirer.
+
+Palette claire + accents colorés (vert pour “en magasin”, bleu pour “stock”, jaune pour “commande”).
+
+Police sans-serif moderne (SF Pro, Inter, Urbanist).
+
+Optimisé tablette (iPad) + desktop.
+
+Responsive PWA.
+
+📱 ECRANS À PRODUIRE
+1. Écran d’accueil – “Recherche rapide”
+
+Inclure des composants visuels qualitatifs :
+
+Grands boutons pour sélectionner le type :
+
+Fixe, Convertible, Fauteuil, Méridienne
+(icônes + visuels + hover states premium)
+
+Curseur Largeur max (cm)
+
+Cases Profondeur : Pas profonde / Standard / Lounge
+
+Curseur Budget
+
+Filtres Disponibilité :
+
+🟢 En magasin
+
+🔵 En stock
+
+🟡 Sur commande
+
+Bouton CTA :
+“Voir les modèles compatibles” (full width, design premium)
+
+➡️ Style : très visuel, card-based, inspiré configurateurs voiture.
+
+2. Page Résultats – Catalogue
+
+Grille de cartes modernisées (2–3 colonnes selon écran).
+Chaque carte doit afficher :
+
+Photo principale (API ou ajout manuel)
+
+Nom du modèle
+
+Version proposée (ex : 178 cm – fixe)
+
+Prix TTC
+
+Badges de disponibilité :
+
+🟢 En magasin
+
+🔵 Stock rapide
+
+🟡 Commande
+
+Icônes type (fixe / convertible / fauteuil / méridienne)
+
+Boutons :
+
+“Voir détails”
+
+“Ajouter à la sélection”
+
+➡️ Ajouter hover states élégants, animations micro-interaction.
+
+3. Fiche modèle (détaillée)
+
+Doit être super premium :
+
+Header :
+
+Grande photo hero + galerie horizontale
+(API + photos manuelles supplémentaires uploadables)
+
+Sections :
+
+Bloc prix clair
+
+Dimensions (L × P × H)
+
+Confort
+
+Type (fixe / convertible / fauteuil / méridienne)
+
+Tableau disponibilité (moderne, lisible)
+
+Variantes :
+
+autres largeurs
+
+profondeurs
+
+versions angle / relax / convertible
+
+Plans techniques (image zoomable)
+
+Galerie “photos showroom” (upload manuel)
+
+➡️ Style : fiches Apple Store / configurateurs premium.
+
+4. Comparateur
+
+Tableau moderne + cartes côte à côte.
+Comparer :
+
+Prix
+
+Dimensions
+
+Confort
+
+Disponibilités
+
+Type
+
+Options (convertible, relax…)
+
+➡️ Style : cartes épurées, lisibles, élégantes.
+
+🖼️ PHOTOS
+
+L’app doit permettre :
+
+d’afficher les photos de l’API
+
+d’ajouter des photos manuelles (galerie supplémentaire)
+
+de gérer un mode galerie grande taille
+
+zoom / swipe / plein écran
+
+animations fluides
+
+🔌 API
+
+L’UI doit consommer :
+
+Modèles
+
+Formats (dimensions)
+
+Prix
+
+Disponibilités
+
+Photos / plans
+
+champ “photos_custom” pour photos manuelles (galerie interne).
+
+🧭 ERGONOMIE & EXIGENCES
+
+Navigation ultra simple, pensée pour vendeurs en magasin
+
+Accessibilité tablette prioritaire
+
+Touch-friendly
+
+Animations micro (fade, zoom, slide subtle)
+
+Temps de compréhension < 2 secondes
+
+Résultat visible pour le client très rapidement
+
+🧩 LIVRABLE ATTENDU PAR BASE44
+
+Un design complet, modulable, propre, moderne
+
+Pages, composants, typographies, couleurs
+
+Architecture UI en respectant les écrans décrits
+
+Cohérence totale interface + interactions
+
+Exportable (PWA-friendly)
+
+Facile à intégrer dans un iFrame dans Base44
+
+Si certaines infos API manquent, compléter avec placeholders.
