@@ -21,4 +21,3 @@ services:
         value: 10000
 
     staticPublishPath: dist/client
-    staticPublishPathRedirect: true
