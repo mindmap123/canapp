@@ -6,6 +6,7 @@ export default function AvailabilityFilterExample() {
     store: true,
     stock: true,
     order: false,
+    instock_stores: false,
   });
 
   return (

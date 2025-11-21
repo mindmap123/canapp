@@ -6,6 +6,7 @@ export default function AvailabilityBadgeExample() {
       <AvailabilityBadge type="store" />
       <AvailabilityBadge type="stock" />
       <AvailabilityBadge type="order" />
+      <AvailabilityBadge type="instock_stores" />
     </div>
   );
 }

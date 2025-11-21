@@ -7,14 +7,16 @@ interface AvailabilityFilterProps {
     store: boolean;
     stock: boolean;
     order: boolean;
+    instock_stores: boolean;
   };
-  onChange: (value: { store: boolean; stock: boolean; order: boolean }) => void;
+  onChange: (value: { store: boolean; stock: boolean; order: boolean; instock_stores: boolean }) => void;
 }
 
 const availabilityOptions = [
   { key: "store" as const, label: "En magasin", icon: MapPin, colorClass: "text-availability-store" },
   { key: "stock" as const, label: "En stock", icon: Package, colorClass: "text-availability-stock" },
   { key: "order" as const, label: "Sur commande", icon: Clock, colorClass: "text-availability-order" },
+  { key: "instock_stores" as const, label: "En stock dans les magasins", icon: MapPin, colorClass: "text-availability-stock" },
 ];
 
 export default function AvailabilityFilter({ value, onChange }: AvailabilityFilterProps) {

@@ -25,6 +25,7 @@ export default function Home() {
     store: false,
     stock: false,
     order: false,
+    instock_stores: false,
   });
 
   const handleSearch = () => {
@@ -41,6 +42,7 @@ export default function Home() {
     if (availability.store) params.append("inStore", "true");
     if (availability.stock) params.append("inStock", "true");
     if (availability.order) params.append("onOrder", "true");
+    // instock_stores not yet supported in query params but kept for UI state
 
     setLocation(`/catalog?${params.toString()}`);
   };

@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Package, Clock } from "lucide-react";
 
-export type AvailabilityType = "store" | "stock" | "order";
+export type AvailabilityType = "store" | "stock" | "order" | "instock_stores";
 
 interface AvailabilityBadgeProps {
   type: AvailabilityType;
@@ -23,6 +23,11 @@ const availabilityConfig = {
     label: "Sur commande",
     icon: Clock,
     className: "bg-availability-order/10 text-availability-order border-availability-order/20",
+  },
+  instock_stores: {
+    label: "En stock dans les magasins",
+    icon: MapPin,
+    className: "bg-availability-stock/10 text-availability-stock border-availability-stock/20",
   },
 };
 

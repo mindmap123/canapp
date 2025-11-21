@@ -1,47 +1,88 @@
-import { useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Check, Download, Plus, Ruler, Sofa as SofaIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import AvailabilityBadge from "@/components/AvailabilityBadge";
 import ProductCard from "@/components/ProductCard";
 import { useSelection } from "@/lib/selectionContext";
+import {
+  fetchFabricCategories,
+  fetchFamilies,
+  fetchFamilyById,
+  fetchLegData,
+  uploadPhotoToVariant,
+} from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { fetchSofaById, fetchSofas, uploadPhotoToSofa } from "@/lib/api";
-import { ArrowLeft, Plus, Ruler, Sofa as SofaIcon, Check, Upload } from "lucide-react";
-import { AvailabilityType } from "@/components/AvailabilityBadge";
-import { Sofa } from "@shared/schema";
+import { FabricCategory, LegConfig, ProductFamily, Variant } from "@shared/domain";
+import { VariantTable } from "@/components/VariantTable";
+import { FabricPricingGrid } from "@/components/FabricPricingGrid";
+import { LegSelector } from "@/components/LegSelector";
+import { GalleryLightbox } from "@/components/GalleryLightbox";
+import { ActionBar } from "@/components/ActionBar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function ProductDetail() {
   const [, params] = useRoute("/product/:id");
   const [, setLocation] = useLocation();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toggleSelection } = useSelection();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: sofa, isLoading } = useQuery({
-    queryKey: ["/api/sofas", params?.id],
-    queryFn: () => fetchSofaById(params!.id),
-    enabled: !!params?.id,
+  const familyId = params?.id || "";
+
+  const { data: family, isLoading } = useQuery({
+    queryKey: ["family", familyId],
+    queryFn: () => fetchFamilyById(familyId),
+    enabled: !!familyId,
   });
 
-  const { data: allSofas } = useQuery({
-    queryKey: ["/api/sofas"],
-    queryFn: fetchSofas,
+  const { data: categories } = useQuery({
+    queryKey: ["fabric-categories"],
+    queryFn: fetchFabricCategories,
   });
+
+  const { data: legData } = useQuery({
+    queryKey: ["legs"],
+    queryFn: fetchLegData,
+  });
+
+  const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
+  const [selectedLeg, setSelectedLeg] = useState<LegConfig | null>(null);
+  const [techOpen, setTechOpen] = useState(false);
+
+  useEffect(() => {
+    if (family && !activeVariantId) {
+      setActiveVariantId(family.variants[0]?.id ?? null);
+    }
+  }, [family, activeVariantId]);
+
+  const activeVariant: Variant | null = useMemo(() => {
+    return family?.variants.find((v) => v.id === activeVariantId) ?? null;
+  }, [family, activeVariantId]);
+
+  useEffect(() => {
+    if (activeVariant) {
+      const defaultLeg = activeVariant.legs.find((l) => l.isDefault) ?? activeVariant.legs[0] ?? null;
+      setSelectedLeg(defaultLeg ?? null);
+    }
+  }, [activeVariant]);
 
   const uploadMutation = useMutation({
-    mutationFn: (file: File) => uploadPhotoToSofa(params!.id, file),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sofas", params?.id] });
+    mutationFn: (file: File) => uploadPhotoToVariant(familyId, activeVariantId!, file),
+    onSuccess: (variant) => {
       toast({
         title: "Photo ajoutée",
         description: "La photo a été ajoutée à la galerie avec succès",
       });
+      queryClient.invalidateQueries({ queryKey: ["family", familyId] });
+      queryClient.invalidateQueries({ queryKey: ["families"] });
+      // Update active variant gallery
+      setActiveVariantId(variant.id);
     },
     onError: () => {
       toast({
@@ -59,7 +100,30 @@ export default function ProductDetail() {
     }
   };
 
-  if (isLoading) {
+  const { data: families } = useQuery({
+    queryKey: ["families"],
+    queryFn: fetchFamilies,
+  });
+
+  const relatedFamilies: ProductFamily[] =
+    families?.filter((f) => f.id !== familyId && f.familyType === family?.familyType).slice(0, 3) ?? [];
+
+  const handleVariantChange = (variantId: string) => {
+    setActiveVariantId(variantId);
+  };
+
+  const availabilityBadges = (variant: Variant | null) => {
+    const badges: ("store" | "stock" | "order" | "instock_stores")[] = [];
+    if (!variant) return badges;
+    const states = variant.availability.map((a) => a.state);
+    if (states.includes("expo")) badges.push("store");
+    if (states.includes("stock")) badges.push("stock");
+    if (states.includes("commande")) badges.push("order");
+    if (states.includes("instock_stores")) badges.push("instock_stores");
+    return badges;
+  };
+
+  if (isLoading || !family || !activeVariant) {
     return (
       <div className="min-h-screen bg-background">
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b">
@@ -83,43 +147,18 @@ export default function ProductDetail() {
     );
   }
 
-  if (!sofa) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Produit non trouvé</h1>
-          <Button onClick={() => setLocation("/catalog")}>
-            Retour au catalogue
-          </Button>
-        </div>
-      </div>
+  const heroPrice = (() => {
+    const ordered = categories ?? [];
+    const first = ordered.find(
+      (c) => activeVariant.fabricPricing[c.code] !== undefined || activeVariant.fabricPricing[c.id] !== undefined,
     );
-  }
-
-  const getAvailability = (): AvailabilityType[] => {
-    const availability: AvailabilityType[] = [];
-    if (sofa.inStore) availability.push("store");
-    if (sofa.inStock) availability.push("stock");
-    if (sofa.onOrder) availability.push("order");
-    return availability;
-  };
-
-  const variants = allSofas?.filter(
-    (s) => s.type === sofa.type && s.id !== sofa.id
-  ) || [];
-
-  const getVariantAvailability = (variant: Sofa): AvailabilityType[] => {
-    const av: AvailabilityType[] = [];
-    if (variant.inStore) av.push("store");
-    if (variant.inStock) av.push("stock");
-    if (variant.onOrder) av.push("order");
-    return av;
-  };
+    return first ? (activeVariant.fabricPricing[first.code] ?? activeVariant.fabricPricing[first.id]) ?? undefined : undefined;
+  })();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-28">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Button
             variant="ghost"
             size="icon"
@@ -128,101 +167,83 @@ export default function ProductDetail() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
+          <Button variant="outline" onClick={() => toggleSelection(activeVariantId!)}>
+            Ajouter à ma sélection
+          </Button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-12">
-        {/* Hero Section */}
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4">
-            <div className="aspect-video rounded-2xl overflow-hidden bg-muted">
-              <img
-                src={sofa.images[currentImageIndex] || sofa.mainImage}
-                alt={sofa.name}
-                className="w-full h-full object-cover"
-                data-testid="img-product-hero"
-              />
-            </div>
-            <div className="flex gap-2 overflow-x-auto">
-              {sofa.images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                    currentImageIndex === idx
-                      ? "border-primary"
-                      : "border-transparent"
-                  }`}
-                  data-testid={`button-thumbnail-${idx}`}
-                >
-                  <img
-                    src={img}
-                    alt={`${sofa.name} ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-              <Button
-                variant="outline"
-                className="flex-shrink-0 w-20 h-20"
-                data-testid="button-add-photo"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadMutation.isPending}
-              >
-                {uploadMutation.isPending ? (
-                  <Upload className="w-5 h-5 animate-pulse" />
-                ) : (
-                  <Plus className="w-5 h-5" />
-                )}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
-            </div>
+            <GalleryLightbox
+              items={activeVariant.gallery}
+              onUpload={() => fileInputRef.current?.click()}
+              uploading={uploadMutation.isPending}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
           </div>
 
           <div className="space-y-6">
             <div>
               <div className="flex items-start justify-between mb-3">
-                <h1 className="text-4xl font-bold" data-testid="text-product-name">
-                  {sofa.name}
-                </h1>
+                <div>
+                  <p className="text-sm text-muted-foreground">{family.familyType}</p>
+                  <h1 className="text-4xl font-bold" data-testid="text-product-name">
+                    {family.name}
+                  </h1>
+                  <p className="text-muted-foreground mt-1">{family.description}</p>
+                </div>
                 <Badge variant="outline" className="capitalize">
-                  {sofa.type}
+                  {activeVariant.variantType}
                 </Badge>
               </div>
               <div className="flex flex-wrap gap-2 mb-4">
-                {getAvailability().map((av) => (
+                {availabilityBadges(activeVariant).map((av) => (
                   <AvailabilityBadge key={av} type={av} />
                 ))}
               </div>
-              <p className="text-muted-foreground text-lg">{sofa.description}</p>
             </div>
 
             <div className="flex items-baseline gap-2 py-6 border-y">
               <span className="text-5xl font-bold" data-testid="text-price">
-                {parseFloat(sofa.price).toLocaleString("fr-FR")}€
+                {heroPrice ? `${heroPrice.toLocaleString("fr-FR")}€` : "Tarif sur demande"}
               </span>
               <span className="text-lg text-muted-foreground">TTC</span>
             </div>
 
-            <Button 
-              size="lg" 
-              className="w-full h-14" 
-              data-testid="button-add-to-selection"
-              onClick={() => toggleSelection(sofa.id)}
+            <VariantTable
+              variants={family.variants}
+              value={activeVariantId!}
+              onChange={handleVariantChange}
+              entryPriceResolver={(variant) => {
+                const match = categories?.find(
+                  (c) => variant.fabricPricing[c.code] !== undefined || variant.fabricPricing[c.id] !== undefined,
+                );
+                if (!match) return undefined;
+                return (variant.fabricPricing[match.code] ?? variant.fabricPricing[match.id]) ?? undefined;
+              }}
+            />
+
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full h-14 flex items-center justify-center gap-2"
+              onClick={() => setTechOpen(true)}
+              disabled={!activeVariant.technicalSheetUrl}
             >
-              <Plus className="w-5 h-5 mr-2" />
-              Ajouter à ma sélection
+              <Download className="w-4 h-4" />
+              Fiche technique
             </Button>
           </div>
         </div>
 
-        {/* Specifications */}
         <Card className="p-8">
           <h2 className="text-2xl font-semibold mb-6">Caractéristiques</h2>
           <div className="grid md:grid-cols-3 gap-6">
@@ -233,8 +254,11 @@ export default function ProductDetail() {
               <div>
                 <div className="font-medium mb-1">Dimensions</div>
                 <div className="text-sm text-muted-foreground">
-                  L {sofa.width} × P {sofa.depth} × H {sofa.height} cm
+                  L {activeVariant.dimensions.width} × P {activeVariant.dimensions.depth} × H {activeVariant.dimensions.height} cm
                 </div>
+                {activeVariant.dimensions.seatHeight && (
+                  <div className="text-xs text-muted-foreground">Assise {activeVariant.dimensions.seatHeight} cm</div>
+                )}
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -242,8 +266,8 @@ export default function ProductDetail() {
                 <SofaIcon className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <div className="font-medium mb-1">Confort</div>
-                <div className="text-sm text-muted-foreground">{sofa.comfort}</div>
+                <div className="font-medium mb-1">Collection</div>
+                <div className="text-sm text-muted-foreground">{family.collectionName ?? "Collection"}</div>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -251,52 +275,120 @@ export default function ProductDetail() {
                 <Check className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <div className="font-medium mb-1">Type</div>
-                <div className="text-sm text-muted-foreground capitalize">
-                  {sofa.type}
+                <div className="font-medium mb-1">Notes</div>
+                <div className="text-sm text-muted-foreground">
+                  {family.tags?.join(" · ") ?? "Finitions premium"}
                 </div>
               </div>
             </div>
           </div>
-
-          {sofa.features && sofa.features.length > 0 && (
-            <div className="mt-8">
-              <h3 className="font-semibold mb-3">Points forts</h3>
-              <ul className="space-y-2">
-                {sofa.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm">
-                    <Check className="w-4 h-4 text-availability-store mt-0.5 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </Card>
 
-        {/* Variants */}
-        {variants.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-semibold mb-6">Autres variantes</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {variants.map((variant) => (
-                <ProductCard
-                  key={variant.id}
-                  id={variant.id}
-                  name={variant.name}
-                  version={`${variant.width} cm – ${variant.type}`}
-                  price={parseFloat(variant.price)}
-                  mainImage={variant.mainImage}
-                  type={variant.type as any}
-                  availability={getVariantAvailability(variant)}
-                  onViewDetails={() => setLocation(`/product/${variant.id}`)}
-                  onAddToSelection={() => toggleSelection(variant.id)}
-                />
+        {categories && (
+          <FabricPricingGrid categories={categories} pricing={activeVariant.fabricPricing} />
+        )}
+
+        {legData && activeVariant.legs.length > 0 && (
+          <LegSelector
+            legs={activeVariant.legs}
+            legTypes={legData.types}
+            legColors={legData.colors}
+            value={selectedLeg}
+            onChange={setSelectedLeg}
+          />
+        )}
+
+        {activeVariant.availability.length > 0 && (
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Disponibilités</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              {activeVariant.availability.map((av) => (
+                <div key={`${av.location}-${av.state}`} className="p-4 rounded-xl border hover-elevate">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="font-medium">{av.location}</div>
+                    <Badge variant="outline">
+                      {av.state === "expo" ? "Expo" : av.state === "stock" ? "Stock" : "Commande"}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {av.delay ?? "Délai standard"}
+                  </div>
+                </div>
               ))}
+            </div>
+          </Card>
+        )}
+
+        {relatedFamilies.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-semibold mb-6">Autres modèles</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedFamilies.map((fam) => {
+                const defaultVariant = fam.variants[0];
+                const matchCat = categories?.find(
+                  (c) =>
+                    defaultVariant.fabricPricing[c.code] !== undefined ||
+                    defaultVariant.fabricPricing[c.id] !== undefined,
+                );
+                const displayPrice = matchCat
+                  ? (defaultVariant.fabricPricing[matchCat.code] ?? defaultVariant.fabricPricing[matchCat.id]) ?? undefined
+                  : undefined;
+                return (
+                  <ProductCard
+                    key={fam.id}
+                    id={fam.id}
+                    name={fam.name}
+                    version={`${defaultVariant.dimensions.width ?? "—"} cm – ${defaultVariant.variantType}`}
+                    price={displayPrice ?? undefined}
+                    mainImage={defaultVariant.gallery[0]?.url || "/api/images/beige_modern_fixed_sofa.png"}
+                    type={fam.familyType as any}
+                    availability={availabilityBadges(defaultVariant as Variant)}
+                    onViewDetails={() => setLocation(`/product/${fam.id}`)}
+                    onAddToSelection={() => toggleSelection(defaultVariant.id)}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
       </div>
+
+      <ActionBar
+        familyName={family.name}
+        variantLabel={activeVariant.label}
+        selectedFabric={
+          categories?.find(
+            (c) => activeVariant.fabricPricing[c.code] !== undefined || activeVariant.fabricPricing[c.id] !== undefined,
+          )?.label
+        }
+        selectedLeg={
+          selectedLeg
+            ? `${legData?.types.find((t) => t.id === selectedLeg.legTypeId)?.name ?? ""} / ${
+                legData?.colors.find((c) => c.id === selectedLeg.colorId)?.name ?? ""
+              }`
+            : undefined
+        }
+      />
+
+      <Dialog open={techOpen} onOpenChange={setTechOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Fiche technique</DialogTitle>
+          </DialogHeader>
+          {activeVariant.technicalSheetUrl ? (
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-sm">Le lien s’ouvre dans un nouvel onglet.</p>
+              <Button asChild>
+                <a href={activeVariant.technicalSheetUrl} target="_blank" rel="noreferrer">
+                  Ouvrir la fiche PDF
+                </a>
+              </Button>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">Aucune fiche disponible.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

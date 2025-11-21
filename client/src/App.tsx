@@ -9,6 +9,7 @@ import Catalog from "@/pages/Catalog";
 import ProductDetail from "@/pages/ProductDetail";
 import Comparison from "@/pages/Comparison";
 import NotFound from "@/pages/not-found";
+import ProductDetailFC from "@/pages/ProductDetailFC";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/catalog" component={Catalog} />
       <Route path="/product/:id" component={ProductDetail} />
+      <Route path="/product/fc/:id" component={ProductDetailFC} />
       <Route path="/comparison" component={Comparison} />
       <Route component={NotFound} />
     </Switch>

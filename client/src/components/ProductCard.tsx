@@ -8,9 +8,9 @@ interface ProductCardProps {
   id: string;
   name: string;
   version: string;
-  price: number;
+  price?: number;
   mainImage: string;
-  type: SofaType;
+  type: SofaType | "fcc" | string;
   availability: AvailabilityType[];
   onViewDetails?: () => void;
   onAddToSelection?: () => void;
@@ -34,7 +34,7 @@ export default function ProductCard({
   onViewDetails,
   onAddToSelection,
 }: ProductCardProps) {
-  const TypeIcon = typeIcons[type];
+  const TypeIcon = typeIcons[type as keyof typeof typeIcons] ?? Sofa;
 
   return (
     <Card className="overflow-hidden hover-elevate transition-all duration-300" data-testid={`card-product-${id}`}>
@@ -63,7 +63,7 @@ export default function ProductCard({
         </div>
         <div className="flex items-baseline gap-1">
           <span className="text-3xl font-bold" data-testid={`text-price-${id}`}>
-            {price.toLocaleString("fr-FR")}€
+            {price ? `${price.toLocaleString("fr-FR")}€` : "ND"}
           </span>
           <span className="text-sm text-muted-foreground">TTC</span>
         </div>

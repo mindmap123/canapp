@@ -4,16 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/ProductCard";
 import { useSelection } from "@/lib/selectionContext";
-import { filterSofas } from "@/lib/api";
+import { fetchFamilies, fetchFabricCategories } from "@/lib/api";
 import { ArrowLeft, SlidersHorizontal } from "lucide-react";
 import { AvailabilityType } from "@/components/AvailabilityBadge";
-import { Sofa } from "@shared/schema";
+import { ProductFamily, Variant } from "@shared/domain";
 
 export default function Catalog() {
   const [location, setLocation] = useLocation();
   const { selectedIds, toggleSelection } = useSelection();
   
-  // Parse filters from URL
   const params = new URLSearchParams(location.split("?")[1] || "");
   const filters = {
     type: params.get("type") || undefined,
@@ -21,27 +20,48 @@ export default function Catalog() {
     minDepth: params.get("minDepth") ? parseInt(params.get("minDepth")!) : undefined,
     maxDepth: params.get("maxDepth") ? parseInt(params.get("maxDepth")!) : undefined,
     maxPrice: params.get("maxPrice") ? parseFloat(params.get("maxPrice")!) : undefined,
-    inStore: params.has("inStore") ? params.get("inStore") === "true" : undefined,
-    inStock: params.has("inStock") ? params.get("inStock") === "true" : undefined,
-    onOrder: params.has("onOrder") ? params.get("onOrder") === "true" : undefined,
   };
 
-  const { data: sofas, isLoading } = useQuery({
-    queryKey: ["/api/sofas/filter", filters],
-    queryFn: () => filterSofas(filters),
+  const { data: families, isLoading } = useQuery({
+    queryKey: ["families"],
+    queryFn: fetchFamilies,
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ["fabric-categories"],
+    queryFn: fetchFabricCategories,
   });
 
   const handleViewDetails = (id: string) => {
     setLocation(`/product/${id}`);
   };
 
-  const getAvailability = (sofa: Sofa): AvailabilityType[] => {
+  const getAvailability = (variant: Variant): AvailabilityType[] => {
     const availability: AvailabilityType[] = [];
-    if (sofa.inStore) availability.push("store");
-    if (sofa.inStock) availability.push("stock");
-    if (sofa.onOrder) availability.push("order");
+    const states = variant.availability.map((a) => a.state);
+    if (states.includes("expo")) availability.push("store");
+    if (states.includes("stock")) availability.push("stock");
+    if (states.includes("commande")) availability.push("order");
+    if (states.includes("instock_stores")) availability.push("instock_stores");
     return availability;
   };
+
+  const displayFamilies: ProductFamily[] =
+    families?.filter((f) => {
+      const variant = f.variants[0];
+      const widthOk = !filters.maxWidth || (variant.dimensions.width ?? 0) <= filters.maxWidth;
+      const depthOk =
+        (!filters.minDepth || (variant.dimensions.depth ?? 0) >= filters.minDepth) &&
+        (!filters.maxDepth || (variant.dimensions.depth ?? 0) <= filters.maxDepth);
+      const typeOk = !filters.type || f.familyType === filters.type;
+      let priceOk = true;
+      if (filters.maxPrice && categories) {
+        const matchCat = categories.find((c) => variant.fabricPricing[c.id] !== undefined);
+        const price = matchCat ? variant.fabricPricing[matchCat.id] : undefined;
+        priceOk = !price || price <= filters.maxPrice;
+      }
+      return widthOk && depthOk && typeOk && priceOk;
+    }) ?? [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,7 +80,7 @@ export default function Catalog() {
               <div>
                 <h1 className="text-2xl font-bold">Catalogue</h1>
                 <p className="text-sm text-muted-foreground">
-                  {isLoading ? "Chargement..." : `${sofas?.length || 0} modèles disponibles`}
+                  {isLoading ? "Chargement..." : `${displayFamilies.length || 0} modèles disponibles`}
                 </p>
               </div>
             </div>
@@ -74,6 +94,9 @@ export default function Catalog() {
                   Comparer ({selectedIds.length})
                 </Button>
               )}
+              <Button variant="outline" onClick={() => setLocation("/product/fc/306")} >
+                Tester un modèle réel FC
+              </Button>
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -94,22 +117,27 @@ export default function Catalog() {
               <Skeleton key={i} className="h-[400px] rounded-2xl" />
             ))}
           </div>
-        ) : sofas && sofas.length > 0 ? (
+        ) : displayFamilies && displayFamilies.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sofas.map((sofa) => (
-              <ProductCard
-                key={sofa.id}
-                id={sofa.id}
-                name={sofa.name}
-                version={`${sofa.width} cm – ${sofa.type.charAt(0).toUpperCase() + sofa.type.slice(1)}`}
-                price={parseFloat(sofa.price)}
-                mainImage={sofa.mainImage}
-                type={sofa.type as any}
-                availability={getAvailability(sofa)}
-                onViewDetails={() => handleViewDetails(sofa.id)}
-                onAddToSelection={() => toggleSelection(sofa.id)}
+            {displayFamilies.map((family) => {
+              const variant = family.variants[0];
+              const priceCategory = categories?.find((c) => variant.fabricPricing[c.id] !== undefined);
+              const price = priceCategory ? variant.fabricPricing[priceCategory.id] ?? 0 : 0;
+              return (
+                <ProductCard
+                  key={family.id}
+                id={family.id}
+                name={family.name}
+                version={`${variant.dimensions.width ?? "—"} cm – ${variant.variantType}`}
+                price={price}
+                mainImage={variant.gallery[0]?.url || "/api/images/beige_modern_fixed_sofa.png"}
+                type={family.familyType as any}
+                availability={getAvailability(variant)}
+                onViewDetails={() => handleViewDetails(family.id)}
+                onAddToSelection={() => toggleSelection(variant.id)}
               />
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-20">
