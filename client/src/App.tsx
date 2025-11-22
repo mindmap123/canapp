@@ -6,18 +6,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SelectionProvider } from "@/lib/selectionContext";
 import Home from "@/pages/Home";
 import Catalog from "@/pages/Catalog";
-import ProductDetail from "@/pages/ProductDetail";
+import ProductDetail from "@/pages/ProductDetailUnified";
 import Comparison from "@/pages/Comparison";
 import NotFound from "@/pages/not-found";
-import ProductDetailFC from "@/pages/ProductDetailFC";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/catalog" component={Catalog} />
-      <Route path="/product/:id" component={ProductDetail} />
-      <Route path="/product/fc/:id" component={ProductDetailFC} />
+      <Route path="/product/:type/:id" component={ProductDetail} />
       <Route path="/comparison" component={Comparison} />
       <Route component={NotFound} />
     </Switch>

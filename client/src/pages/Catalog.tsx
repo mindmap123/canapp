@@ -33,7 +33,7 @@ export default function Catalog() {
   });
 
   const handleViewDetails = (id: string) => {
-    setLocation(`/product/${id}`);
+    setLocation(`/product/local/${id}`);
   };
 
   const getAvailability = (variant: Variant): AvailabilityType[] => {

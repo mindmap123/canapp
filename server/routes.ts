@@ -47,7 +47,10 @@ const upload = multer({
 });
 
 async function proxyFC(_req: any, res: any, endpoint: string) {
-  const token = process.env.FC_API_TOKEN || "LCVsT5AdlorsB6lMCmeDcXSUMZQSyxbxw18S1PPb9cj7JIrDgZdUpnkj4oXRBuN";
+  const token = process.env.FC_API_TOKEN;
+  if (!token) {
+    throw new Error("FC_API_TOKEN environment variable not set");
+  }
   const url = `https://business.francecanape.com/api/${endpoint}?api_token=${token}`;
 
   try {
@@ -78,7 +81,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Proxy FC references (PIM)
   app.get("/api/references", async (_req, res) => {
-    const token = process.env.FC_API_TOKEN || "LCVsT5AdlorsB6lMCmeDcXSUMZQSyxbxw18S1PPb9cj7JIrDgZdUpnkj4oXRBuN";
+    const token = process.env.FC_API_TOKEN;
+    if (!token) {
+      throw new Error("FC_API_TOKEN environment variable not set");
+    }
     const url = `https://business.francecanape.com/api/references?api_token=${token}`;
     try {
       const response = await fetch(url);

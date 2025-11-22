@@ -18,7 +18,7 @@ export const sofas = pgTable("sofas", {
   mainImage: text("main_image").notNull(),
   images: text("images").array().notNull().default(sql`ARRAY[]::text[]`),
   description: text("description"),
-  features: text("features").array().default(sql`ARRAY[]::text[]`),
+  features: text("features").array(),
 });
 
 export const insertSofaSchema = createInsertSchema(sofas).omit({

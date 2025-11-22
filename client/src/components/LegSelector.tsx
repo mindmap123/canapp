@@ -26,8 +26,8 @@ export function LegSelector({ legs, legTypes, legColors, value, onChange }: LegS
   }, [legs, legColors]);
 
   const selectedType = legTypes.find((t) => t.id === current.legTypeId);
-  const selectedColor = legColors.find((c) => c.id === current.legColorId);
-  const priceDelta = current.priceDelta ?? 0;
+  const selectedColor = legColors.find((c) => c.id === current.colorId);
+  const priceDelta = current.deltaPrice ?? 0;
 
   return (
     <Card className="p-4 md:p-6">

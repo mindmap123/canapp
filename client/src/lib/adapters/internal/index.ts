@@ -118,7 +118,6 @@ export function adaptFCReferenceToProductFamily(raw: any): ProductFamily | null 
     variants,
     isActive: true,
     technicalSheetUrl: raw?.technique_url || null,
-    priceInfo: undefined,
   };
 }
 

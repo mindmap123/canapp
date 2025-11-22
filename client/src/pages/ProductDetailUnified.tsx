@@ -16,6 +16,7 @@ import {
   fetchFamilyById,
   fetchLegData,
   uploadPhotoToVariant,
+  fetchFCReferenceById,
 } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
 import { FabricCategory, LegConfig, ProductFamily, Variant } from "@shared/domain";
@@ -25,21 +26,38 @@ import { LegSelector } from "@/components/LegSelector";
 import { GalleryLightbox } from "@/components/GalleryLightbox";
 import { ActionBar } from "@/components/ActionBar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { adaptFCReferenceToProductFamily, toLocalFcImage } from "@/lib/adapters/internal";
 
 export default function ProductDetail() {
-  const [, params] = useRoute("/product/:id");
+  const [, params] = useRoute("/product/:type/:id");
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toggleSelection } = useSelection();
   const { toast } = useToast();
 
   const familyId = params?.id || "";
+  const type = params?.type || "local";
 
-  const { data: family, isLoading } = useQuery({
+  const { data: familyData, isLoading: isLoadingLocal } = useQuery({
     queryKey: ["family", familyId],
     queryFn: () => fetchFamilyById(familyId),
-    enabled: !!familyId,
+    enabled: !!familyId && type === "local",
   });
+
+  const { data: fcReference, isLoading: isLoadingFC } = useQuery({
+    queryKey: ["fc-reference", familyId],
+    queryFn: () => fetchFCReferenceById(familyId),
+    enabled: !!familyId && type === "fc",
+  });
+
+  const family = useMemo(() => {
+    if (type === 'fc' && fcReference) {
+      return adaptFCReferenceToProductFamily(fcReference);
+    }
+    return familyData;
+  }, [type, fcReference, familyData]);
+
+  const isLoading = isLoadingLocal || isLoadingFC;
 
   const { data: categories } = useQuery({
     queryKey: ["fabric-categories"],
@@ -176,8 +194,8 @@ export default function ProductDetail() {
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-12">
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4">
-            <GalleryLightbox
-              items={activeVariant.gallery}
+          <GalleryLightbox
+              items={activeVariant.gallery.map(item => ({...item, url: toLocalFcImage(item.url)}))}
               onUpload={() => fileInputRef.current?.click()}
               uploading={uploadMutation.isPending}
             />
@@ -343,7 +361,7 @@ export default function ProductDetail() {
                     mainImage={defaultVariant.gallery[0]?.url || "/api/images/beige_modern_fixed_sofa.png"}
                     type={fam.familyType as any}
                     availability={availabilityBadges(defaultVariant as Variant)}
-                    onViewDetails={() => setLocation(`/product/${fam.id}`)}
+                    onViewDetails={() => setLocation(`/product/local/${fam.id}`)}
                     onAddToSelection={() => toggleSelection(defaultVariant.id)}
                   />
                 );
