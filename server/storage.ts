@@ -43,7 +43,7 @@ export class MemStorage implements IStorage {
         images: ["/api/images/beige_modern_fixed_sofa.png"],
         description: "Canapé fixe au design scandinave épuré, parfait pour les espaces contemporains.",
         features: ["Tissu anti-taches", "Pieds en chêne massif", "Coussins déhoussables"],
-      } as Omit<Sofa, "id">,
+      },
       {
         name: "Milano Convertible",
         type: "convertible",
@@ -128,11 +128,22 @@ export class MemStorage implements IStorage {
 
     mockSofas.forEach((sofa) => {
       const id = randomUUID();
-      const fullSofa: Sofa = { 
-        ...sofa, 
+      const fullSofa: Sofa = {
         id,
+        name: sofa.name,
+        type: sofa.type,
+        width: sofa.width,
+        depth: sofa.depth,
+        height: sofa.height,
+        price: sofa.price,
+        comfort: sofa.comfort,
+        inStore: sofa.inStore,
+        inStock: sofa.inStock,
+        onOrder: sofa.onOrder,
+        mainImage: sofa.mainImage,
+        images: sofa.images,
         description: sofa.description ?? null,
-        features: sofa.features ?? null
+        features: sofa.features ?? null,
       };
       this.sofas.set(id, fullSofa);
     });
